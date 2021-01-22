@@ -122,16 +122,16 @@ class Crawler:
 
     async def get_childs(self, root):
         blacklist = [
-            '/redfish/v1/JsonSchemas',
-            '/redfish/v1/Managers/iDRAC.Embedded.1/LogServices/',
-            '/redfish/v1/Managers/iDRAC.Embedded.1/LogServices/Lclog',
+            '/redfish/v1/jsonschemas',
+            '/redfish/v1/managers/idrac.embedded.1/logservices/',
+            '/redfish/v1/managers/idrac.embedded.1/logservices/lclog',
         ]
         nodes = []
         if root.data:
             for key, value in root.data.items():
                 if type(value) == dict:
                     endpoint = value.get("@odata.id")
-                    if endpoint in blacklist:
+                    if endpoint.lower() in blacklist:
                         continue
                     if endpoint:
                         directory_suffix = endpoint.split("/")[-1]
@@ -150,7 +150,7 @@ class Crawler:
                     if key.lower() == "members":
                         for member in value:
                             endpoint = member.get("@odata.id")
-                            if endpoint in blacklist:
+                            if endpoint.lower() in blacklist:
                                 continue
                             if endpoint:
                                 directory_suffix = endpoint.split("/")[-1]
@@ -160,7 +160,7 @@ class Crawler:
                                 node_data = await self.get_data(endpoint)
                                 node = Node(endpoint=endpoint, data=node_data, directory=directory)
                                 if node_data:
-                                    with open(os.path.join(directory, "out"), "w") as output:
+                                    with open(os.path.join(directory, "out.json"), "w") as output:
                                         output.write(json.dumps(node_data, indent=2))
                                     node.data = node_data
                                 await self.get_childs(node)
