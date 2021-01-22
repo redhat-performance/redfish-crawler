@@ -27,7 +27,11 @@ from logging import (
 
 warnings.filterwarnings("ignore")
 
-RETRIES = 15
+BLACKLIST = [
+    '/redfish/v1/jsonschemas',
+    '/redfish/v1/managers/idrac.embedded.1/logservices/',
+    '/redfish/v1/managers/idrac.embedded.1/logservices/lclog',
+]
 
 
 async def crawler_factory(_host, _username, _password, _logger, _loop=None):
@@ -120,49 +124,38 @@ class Crawler:
 
         return data
 
+    async def get_node(self, root, value):
+        endpoint = value.get("@odata.id")
+        if endpoint:
+            if endpoint.lower() in BLACKLIST:
+                return None
+            directory_suffix = endpoint.split("/")[-1]
+            directory = os.path.join(root.directory, directory_suffix)
+            if not os.path.exists(directory):
+                os.mkdir(directory)
+            node_data = await self.get_data(endpoint)
+            node = Node(endpoint=endpoint, data=node_data, directory=directory)
+            if node_data:
+                with open(os.path.join(directory, "out.json"), "w") as output:
+                    output.write(json.dumps(node_data, indent=2))
+                node.data = node_data
+            return node
+        return None
+
     async def get_childs(self, root):
-        blacklist = [
-            '/redfish/v1/jsonschemas',
-            '/redfish/v1/managers/idrac.embedded.1/logservices/',
-            '/redfish/v1/managers/idrac.embedded.1/logservices/lclog',
-        ]
         nodes = []
         if root.data:
             for key, value in root.data.items():
                 if type(value) == dict:
-                    endpoint = value.get("@odata.id")
-                    if endpoint.lower() in blacklist:
-                        continue
-                    if endpoint:
-                        directory_suffix = endpoint.split("/")[-1]
-                        directory = os.path.join(root.directory, directory_suffix)
-                        if not os.path.exists(directory):
-                            os.mkdir(directory)
-                        node_data = await self.get_data(endpoint)
-                        node = Node(endpoint=endpoint, data=node_data, directory=directory)
-                        if node_data:
-                            with open(os.path.join(directory, "out.json"), "w") as output:
-                                output.write(json.dumps(node_data, indent=2))
-                            node.data = node_data
+                    node = await self.get_node(root, value)
+                    if node:
                         await self.get_childs(node)
                         nodes.append(node)
                 elif type(value) == list:
                     if key.lower() == "members":
                         for member in value:
-                            endpoint = member.get("@odata.id")
-                            if endpoint.lower() in blacklist:
-                                continue
-                            if endpoint:
-                                directory_suffix = endpoint.split("/")[-1]
-                                directory = os.path.join(root.directory, directory_suffix)
-                                if not os.path.exists(directory):
-                                    os.mkdir(directory)
-                                node_data = await self.get_data(endpoint)
-                                node = Node(endpoint=endpoint, data=node_data, directory=directory)
-                                if node_data:
-                                    with open(os.path.join(directory, "out.json"), "w") as output:
-                                        output.write(json.dumps(node_data, indent=2))
-                                    node.data = node_data
+                            node = await self.get_node(root, member)
+                            if node:
                                 await self.get_childs(node)
                                 nodes.append(node)
 
