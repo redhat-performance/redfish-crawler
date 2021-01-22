@@ -178,8 +178,6 @@ class Crawler:
         )
         await self.get_childs(root)
 
-        print(root)
-
 
 async def execute_crawler(_host, _args, logger):
     _username = _args["u"]
