@@ -17,19 +17,19 @@ The Redfish Crawler is a python standalone cli tool for generating a folder stru
 
 ## Setup
 ### Crawler Standalone Script
-```
-git clone https://github.com/grafuls/redfish-crawler && cd redfish-crawler
-pip install -r requirements.txt
+```bash
+> git clone https://github.com/grafuls/redfish-crawler && cd redfish-crawler
+> pip install -r requirements.txt
 ```
 NOTE:
 * This will allow the crawler script execution via ```./crawler.py```
 
 ### Crawler Standalone within a virtualenv
-```
-git clone https://github.com/grafuls/redfish-crawler && cd redfish-crawler
-virtualenv .crawler_venv
-source .crawler_venv/bin/activate
-pip install -r requirements.txt
+```bash
+> git clone https://github.com/grafuls/redfish-crawler && cd redfish-crawler
+> virtualenv .crawler_venv
+> source .crawler_venv/bin/activate
+> pip install -r requirements.txt
 ```
 NOTE:
 * Both setup methods above can be used within a virtualenv
