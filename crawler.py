@@ -18,7 +18,6 @@ from async_lru import alru_cache
 from tqdm import tqdm
 from logging import (
     Formatter,
-    FileHandler,
     DEBUG,
     INFO,
     StreamHandler,
@@ -217,9 +216,6 @@ def main(argv=None):
     parser.add_argument("-H", help="iDRAC host address")
     parser.add_argument("-u", help="iDRAC username", required=True)
     parser.add_argument("-p", help="iDRAC password", required=True)
-    parser.add_argument(
-        "-l", "--log", help="Optional argument for logging results to a file"
-    )
     parser.add_argument("-v", "--verbose", help="Verbose output", action="store_true")
     _args = vars(parser.parse_args(argv))
 
@@ -228,7 +224,6 @@ def main(argv=None):
     host = _args["H"]
 
     FMT = "\n- %(levelname)-8s - %(message)s"
-    FILEFMT = "%(asctime)-12s: %(levelname)-8s - %(message)s"
 
     _queue = Queue()
     _stream_handler = StreamHandler()
@@ -240,12 +235,6 @@ def main(argv=None):
     _logger.setLevel(log_level)
 
     _queue_listener.start()
-
-    if _args["log"]:
-        file_handler = FileHandler(_args["log"])
-        file_handler.setFormatter(Formatter(FILEFMT))
-        file_handler.setLevel(log_level)
-        _queue_listener.handlers = _queue_listener.handlers + (file_handler,)
 
     loop = asyncio.get_event_loop()
     try:
