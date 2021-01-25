@@ -42,3 +42,11 @@ NOTE:
 
 NOTE:
 * This will create a root directory with the server's shortname on the current working directory, which will include all endpoints directories and json output files.
+* Some endpoints are blacklisted as data from those is deemed irrelevant and costly:
+  - "jsonschemas"
+  - "logservices"
+  - "secureboot"
+  - "lclog"
+  - "assembly"
+  - "metrics"
+  - "memorymetrics"
