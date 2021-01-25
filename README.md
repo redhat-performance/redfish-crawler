@@ -50,3 +50,5 @@ NOTE:
   - "assembly"
   - "metrics"
   - "memorymetrics"
+  - "telemetryservice"
+  - "sessions"

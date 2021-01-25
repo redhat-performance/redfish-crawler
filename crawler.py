@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import aiohttp
+import aiofiles
 import json
 import argparse
 import os
@@ -34,6 +35,8 @@ BLACKLIST = [
     "assembly",
     "metrics",
     "memorymetrics",
+    "telemetryservice",
+    "sessions",
 ]
 
 
@@ -144,8 +147,8 @@ class Crawler:
             node_data = await self.get_data(endpoint)
             node = Node(endpoint=endpoint, data=node_data, directory=directory)
             if node_data:
-                with open(os.path.join(directory, "out.json"), "w") as output:
-                    output.write(json.dumps(node_data, indent=2))
+                async with aiofiles.open(os.path.join(directory, "out.json"), "w") as output:
+                    await output.write(json.dumps(node_data, indent=2))
                 node.data = node_data
             return node
         return None
@@ -185,6 +188,11 @@ class Crawler:
             directory=self.root_dir,
             root=True,
         )
+        if not os.path.exists(self.root_dir):
+            os.mkdir(self.root_dir)
+        if root.data:
+            async with aiofiles.open(os.path.join(self.root_dir, "out.json"), "w") as output:
+                await output.write(json.dumps(root.data, indent=2))
         self.pbar = tqdm(
             total=len(root.data),
             ncols=90,
