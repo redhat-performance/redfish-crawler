@@ -189,6 +189,7 @@ class Crawler:
             total=len(root.data),
             ncols=90,
             ascii=True,
+            colour='green',
             bar_format="{desc:<25.25}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} ",
         )
         await self.get_childs(root)
