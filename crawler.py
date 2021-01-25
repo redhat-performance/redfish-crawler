@@ -32,6 +32,7 @@ BLACKLIST = [
     "secureboot",
     "lclog",
     "assembly",
+    "metrics",
     "memorymetrics",
 ]
 
