@@ -28,12 +28,12 @@ from logging import (
 warnings.filterwarnings("ignore")
 
 BLACKLIST = [
-    'jsonschemas',
-    'logservices',
-    'secureboot',
-    'lclog',
-    'assembly',
-    'memorymetrics',
+    "jsonschemas",
+    "logservices",
+    "secureboot",
+    "lclog",
+    "assembly",
+    "memorymetrics",
 ]
 
 
@@ -48,14 +48,7 @@ class CrawlerException(Exception):
 
 
 class Node:
-    def __init__(
-            self,
-            endpoint,
-            data=None,
-            directory=None,
-            root=False,
-            childs=None
-    ):
+    def __init__(self, endpoint, data=None, directory=None, root=False, childs=None):
         self.endpoint = endpoint
         self.data = data
         self.directory = directory
@@ -123,7 +116,7 @@ class Crawler:
         if response.status == 403:
             endpoint = uri.split("/")[-1]
             self.logger.warning(
-                f"Can't access {endpoint}. Obtain an appropriate license then try again. SKIPPING"
+                f"Could not access {endpoint}. Obtain an appropriate license then try again. SKIPPING"
             )
             return None
 
@@ -165,7 +158,7 @@ class Crawler:
                     node = await self.get_node(root, value)
                     if node:
                         if node.endpoint:
-                            self.pbar.set_description(node.endpoint.split('/')[-1])
+                            self.pbar.set_description(node.endpoint.split("/")[-1])
                         await self.get_childs(node)
                         nodes.append(node)
                 elif type(value) == list:
@@ -192,7 +185,12 @@ class Crawler:
             directory=self.root_dir,
             root=True,
         )
-        self.pbar = tqdm(total=len(root.data), ncols=90, ascii=True, bar_format='{bar}{l_bar}')
+        self.pbar = tqdm(
+            total=len(root.data),
+            ncols=90,
+            ascii=True,
+            bar_format="{desc:<25.25}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} ",
+        )
         await self.get_childs(root)
 
 
@@ -250,9 +248,7 @@ def main(argv=None):
 
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(
-            execute_crawler(host, _args, _logger)
-        )
+        loop.run_until_complete(execute_crawler(host, _args, _logger))
     except KeyboardInterrupt:
         _logger.warning("Crawler terminated")
     except CrawlerException as ex:
