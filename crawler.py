@@ -14,8 +14,8 @@ try:
 except ImportError:
     from queue import Queue
 from logging.handlers import QueueHandler, QueueListener
-
 from async_lru import alru_cache
+from tqdm import tqdm
 from logging import (
     Formatter,
     FileHandler,
@@ -28,9 +28,12 @@ from logging import (
 warnings.filterwarnings("ignore")
 
 BLACKLIST = [
-    '/redfish/v1/jsonschemas',
-    '/redfish/v1/managers/idrac.embedded.1/logservices/',
-    '/redfish/v1/managers/idrac.embedded.1/logservices/lclog',
+    'jsonschemas',
+    'logservices',
+    'secureboot',
+    'lclog',
+    'assembly',
+    'memorymetrics',
 ]
 
 
@@ -45,10 +48,18 @@ class CrawlerException(Exception):
 
 
 class Node:
-    def __init__(self, endpoint, data=None, directory=None, childs=None):
+    def __init__(
+            self,
+            endpoint,
+            data=None,
+            directory=None,
+            root=False,
+            childs=None
+    ):
         self.endpoint = endpoint
         self.data = data
         self.directory = directory
+        self.root = root
         self.childs = childs
 
 
@@ -63,6 +74,7 @@ class Crawler:
         self.logger = _logger
         self.semaphore = asyncio.Semaphore(20)
         self.root_dir = None
+        self.pbar = None
         if not _loop:
             self.loop = asyncio.get_event_loop()
         else:
@@ -116,6 +128,8 @@ class Crawler:
             return None
 
         if response.status not in [200, 201]:
+            self.logger.debug(f"Response.status={response.status}")
+            self.logger.debug(f"URI={uri}")
             self.logger.error(f"Failed to communicate with {self.host}")
             raise CrawlerException
 
@@ -127,7 +141,8 @@ class Crawler:
     async def get_node(self, root, value):
         endpoint = value.get("@odata.id")
         if endpoint:
-            if endpoint.lower() in BLACKLIST:
+            suffix = endpoint.split("/")[-1]
+            if suffix.lower() in BLACKLIST:
                 return None
             directory_suffix = endpoint.split("/")[-1]
             directory = os.path.join(root.directory, directory_suffix)
@@ -149,6 +164,8 @@ class Crawler:
                 if type(value) == dict:
                     node = await self.get_node(root, value)
                     if node:
+                        if node.endpoint:
+                            self.pbar.set_description(node.endpoint.split('/')[-1])
                         await self.get_childs(node)
                         nodes.append(node)
                 elif type(value) == list:
@@ -159,6 +176,11 @@ class Crawler:
                                 await self.get_childs(node)
                                 nodes.append(node)
 
+                if root.root and self.pbar:
+                    self.pbar.update(1)
+            if root.root:
+                self.pbar.close()
+
         root.childs = nodes
 
     async def crawl(self):
@@ -167,8 +189,10 @@ class Crawler:
         root = Node(
             endpoint=data.get("@odata.id"),
             data=data,
-            directory=self.root_dir
+            directory=self.root_dir,
+            root=True,
         )
+        self.pbar = tqdm(total=len(root.data), ncols=90, ascii=True, bar_format='{bar}{l_bar}')
         await self.get_childs(root)
 
 
@@ -204,7 +228,7 @@ def main(argv=None):
 
     host = _args["H"]
 
-    FMT = "- %(levelname)-8s - %(message)s"
+    FMT = "\n- %(levelname)-8s - %(message)s"
     FILEFMT = "%(asctime)-12s: %(levelname)-8s - %(message)s"
 
     _queue = Queue()
