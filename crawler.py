@@ -158,12 +158,31 @@ class Crawler:
         if root.data:
             for key, value in root.data.items():
                 if type(value) == dict:
-                    node = await self.get_node(root, value)
-                    if node:
-                        if node.endpoint:
-                            self.pbar.set_description(node.endpoint.split("/")[-1])
-                        await self.get_childs(node)
-                        nodes.append(node)
+                    if key.lower() == "oem":
+                        _keys = value.keys()
+                        upper_keys = {_key.upper(): _key for _key in _keys}
+                        supermicro_key = upper_keys.get("SUPERMICRO")
+                        dell_key = upper_keys.get("DELL")
+                        oem_key = supermicro_key if supermicro_key else dell_key
+                        oem = value.get(oem_key)
+                        if oem:
+                            for k, v in oem.items():
+                                if type(v) == dict:
+                                    endpoint = v.get("@odata.id")
+                                    if endpoint:
+                                        node = await self.get_node(root, v)
+                                        if node:
+                                            if node.endpoint:
+                                                self.pbar.set_description(node.endpoint.split("/")[-1])
+                                            await self.get_childs(node)
+                                            nodes.append(node)
+                    else:
+                        node = await self.get_node(root, value)
+                        if node:
+                            if node.endpoint:
+                                self.pbar.set_description(node.endpoint.split("/")[-1])
+                            await self.get_childs(node)
+                            nodes.append(node)
                 elif type(value) == list:
                     if key.lower() == "members":
                         for member in value:
