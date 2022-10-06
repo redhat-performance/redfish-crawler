@@ -1,2 +1,3 @@
 mgmt-*
 .idea/
+/.crawler_venv/

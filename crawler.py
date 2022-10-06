@@ -123,6 +123,10 @@ class Crawler:
             )
             return None
 
+        if response.status == 503:
+            self.logger.warning(f"Service '{uri}' is unavailable. SKIPPING.")
+            return None
+
         if response.status not in [200, 201]:
             self.logger.debug(f"Response.status={response.status}")
             self.logger.debug(f"URI={uri}")
