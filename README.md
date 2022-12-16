@@ -5,7 +5,7 @@
      * [Crawler Standalone within a virtualenv](#crawler-standalone-within-a-virtualenv)
   * [Usage](#usage)
 
-# Redifsh Crawler
+# Redfish Crawler
 The Redfish Crawler is a python standalone cli tool for generating a folder structure with all of it's json responses for all available endpoint on a server's own [Redfish](https://www.dmtf.org/standards/redfish) implementation.
 
 ## Requirements
