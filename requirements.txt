@@ -1,4 +1,4 @@
-aiohttp==3.6.2
+aiohttp==3.8.5
 aiofiles==0.6.0
 async-lru==1.0.2
 tqdm==4.56.0
