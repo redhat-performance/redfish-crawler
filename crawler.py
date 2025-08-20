@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import asyncio
 import aiohttp
 import aiofiles
@@ -16,7 +17,7 @@ except ImportError:
     from queue import Queue
 from logging.handlers import QueueHandler, QueueListener
 from async_lru import alru_cache
-from tqdm import tqdm
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn
 from logging import (
     Formatter,
     DEBUG,
@@ -71,6 +72,8 @@ class Crawler:
         self.semaphore = asyncio.Semaphore(20)
         self.root_dir = None
         self.pbar = None
+        self.progress = None
+        self.task_id = None
         if not _loop:
             self.loop = asyncio.get_event_loop()
         else:
@@ -144,11 +147,14 @@ class Crawler:
             suffix = endpoint.split("/")[-1]
             if suffix.lower() in BLACKLIST:
                 return None
+            try:
+                node_data = await self.get_data(endpoint)
+            except CrawlerException:
+                return None
             directory_suffix = endpoint.split("/")[-1]
             directory = os.path.join(root.directory, directory_suffix)
             if not os.path.exists(directory):
                 os.mkdir(directory)
-            node_data = await self.get_data(endpoint)
             node = Node(endpoint=endpoint, data=node_data, directory=directory)
             if node_data:
                 async with aiofiles.open(os.path.join(directory, "out.json"), "w") as output:
@@ -177,14 +183,16 @@ class Crawler:
                                         node = await self.get_node(root, v)
                                         if node:
                                             if node.endpoint:
-                                                self.pbar.set_description(node.endpoint.split("/")[-1])
+                                                if self.progress and self.task_id is not None:
+                                                    self.progress.update(self.task_id, description=node.endpoint.split("/")[-1])
                                             await self.get_childs(node)
                                             nodes.append(node)
                     else:
                         node = await self.get_node(root, value)
                         if node:
                             if node.endpoint:
-                                self.pbar.set_description(node.endpoint.split("/")[-1])
+                                if self.progress and self.task_id is not None:
+                                    self.progress.update(self.task_id, description=node.endpoint.split("/")[-1])
                             await self.get_childs(node)
                             nodes.append(node)
                 elif type(value) == list:
@@ -195,10 +203,11 @@ class Crawler:
                                 await self.get_childs(node)
                                 nodes.append(node)
 
-                if root.root and self.pbar:
-                    self.pbar.update(1)
+                if root.root and self.progress and self.task_id is not None:
+                    self.progress.update(self.task_id, advance=1)
             if root.root:
-                self.pbar.close()
+                if self.progress:
+                    self.progress.stop()
 
         root.childs = nodes
 
@@ -216,13 +225,16 @@ class Crawler:
         if root.data:
             async with aiofiles.open(os.path.join(self.root_dir, "out.json"), "w") as output:
                 await output.write(json.dumps(root.data, indent=2))
-        self.pbar = tqdm(
-            total=len(root.data),
-            ncols=90,
-            ascii=True,
-            colour='green',
-            bar_format="{desc:<25.25}{percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} ",
+        self.progress = Progress(
+            TextColumn("{task.description:<25.25}"),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            BarColumn(bar_width=40),
+            "[progress.completed]{task.completed}/{task.total}",
+            TimeElapsedColumn(),
+            console=None
         )
+        self.progress.start()
+        self.task_id = self.progress.add_task("Starting...", total=len(root.data))
         await self.get_childs(root)
 
 
