@@ -157,7 +157,9 @@ class Crawler:
                 os.mkdir(directory)
             node = Node(endpoint=endpoint, data=node_data, directory=directory)
             if node_data:
-                async with aiofiles.open(os.path.join(directory, "out.json"), "w") as output:
+                async with aiofiles.open(
+                    os.path.join(directory, "out.json"), "w"
+                ) as output:
                     await output.write(json.dumps(node_data, indent=2))
                 node.data = node_data
             return node
@@ -183,8 +185,16 @@ class Crawler:
                                         node = await self.get_node(root, v)
                                         if node:
                                             if node.endpoint:
-                                                if self.progress and self.task_id is not None:
-                                                    self.progress.update(self.task_id, description=node.endpoint.split("/")[-1])
+                                                if (
+                                                    self.progress
+                                                    and self.task_id is not None
+                                                ):
+                                                    self.progress.update(
+                                                        self.task_id,
+                                                        description=node.endpoint.split(
+                                                            "/"
+                                                        )[-1],
+                                                    )
                                             await self.get_childs(node)
                                             nodes.append(node)
                     else:
@@ -192,7 +202,10 @@ class Crawler:
                         if node:
                             if node.endpoint:
                                 if self.progress and self.task_id is not None:
-                                    self.progress.update(self.task_id, description=node.endpoint.split("/")[-1])
+                                    self.progress.update(
+                                        self.task_id,
+                                        description=node.endpoint.split("/")[-1],
+                                    )
                             await self.get_childs(node)
                             nodes.append(node)
                 elif type(value) == list:
@@ -223,7 +236,9 @@ class Crawler:
         if not os.path.exists(self.root_dir):
             os.mkdir(self.root_dir)
         if root.data:
-            async with aiofiles.open(os.path.join(self.root_dir, "out.json"), "w") as output:
+            async with aiofiles.open(
+                os.path.join(self.root_dir, "out.json"), "w"
+            ) as output:
                 await output.write(json.dumps(root.data, indent=2))
         self.progress = Progress(
             TextColumn("{task.description:<25.25}"),
@@ -231,7 +246,7 @@ class Crawler:
             BarColumn(bar_width=40),
             "[progress.completed]{task.completed}/{task.total}",
             TimeElapsedColumn(),
-            console=None
+            console=None,
         )
         self.progress.start()
         self.task_id = self.progress.add_task("Starting...", total=len(root.data))
